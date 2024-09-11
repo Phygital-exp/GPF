@@ -1,21 +1,3 @@
-function updateSearch() {
-    const searchType = document.getElementById('searchType').value;
-    const searchTitle = document.getElementById('searchTitle');
-    const searchInput = document.getElementById('searchInput');
-
-    if (searchType === 'pdv') {
-        searchTitle.textContent = 'Buscar PDV';
-        searchInput.placeholder = 'Ingresa el nombre del PDV';
-    } else {
-        searchTitle.textContent = 'Buscar Producto';
-        searchInput.placeholder = 'Ingresa el nombre del producto';
-    }
-
-    // Clear the search input and results
-    searchInput.value = '';
-    document.getElementById('results').innerHTML = '';
-}
-
 async function search() {
     const searchType = document.getElementById('searchType').value;
     const searchInput = document.getElementById('searchInput').value.toLowerCase();
@@ -42,9 +24,9 @@ async function search() {
 
     const filteredResults = results.filter(item => {
         if (searchType === 'pdv') {
-            return item.PDV.toLowerCase().includes(searchInput);
+            return item.PDV.toLowerCase().includes(searchInput) || item.SAP.toString().includes(searchInput);
         } else {
-            return item.PRODUCTO.toLowerCase().includes(searchInput);
+            return item.PRODUCTO.toLowerCase().includes(searchInput) || item.SAP.toString().includes(searchInput);
         }
     });
 
@@ -77,12 +59,4 @@ async function search() {
     }
 
     document.getElementById('results').innerHTML = output;
-}
-
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(function() {
-        alert('Texto copiado al portapapeles');
-    }, function(err) {
-        console.error('Error al copiar el texto: ', err);
-    });
 }
