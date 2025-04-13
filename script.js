@@ -3,109 +3,105 @@ let fuse = null;
 let allData = { pdv: [], producto: [] };
 let fullData = [];
 
-const PDV_URL = 'https://botai.smartdataautomation.com/api_backend_ai/dinamic-db/report/119/GGPFPDVs';
-const PRODUCTO_URL = 'https://botai.smartdataautomation.com/api_backend_ai/dinamic-db/report/119/GGPFProductos';
-const AUTH_HEADERS = {
-    'Authorization': 'Token 4e15396f99ae10dd5c195d81fb6a3722c0a44a10',
-    'Content-Type': 'application/json'
-};
+const PDV_URL = 'https://gpf-production.up.railway.app/api/ggpf/pdv';
+const PRODUCTO_URL = 'https://gpf-production.up.railway.app/api/ggpf/producto';
 
 async function loadData() {
-    if (!allData.pdv.length) {
-        const pdvResponse = await fetch(PDV_URL, { headers: AUTH_HEADERS });
-        allData.pdv = (await pdvResponse.json()).result || [];
-    }
+  if (!allData.pdv.length) {
+    const pdvResponse = await fetch(PDV_URL);
+    allData.pdv = (await pdvResponse.json()).result || [];
+  }
 
-    if (!allData.producto.length) {
-        const productoResponse = await fetch(PRODUCTO_URL, { headers: AUTH_HEADERS });
-        allData.producto = (await productoResponse.json()).result || [];
-    }
+  if (!allData.producto.length) {
+    const productoResponse = await fetch(PRODUCTO_URL);
+    allData.producto = (await productoResponse.json()).result || [];
+  }
 }
 
 function updatePlaceholder() {
-    const searchType = document.getElementById('searchType').value;
-    const searchInput = document.getElementById('searchInput');
+  const searchType = document.getElementById('searchType').value;
+  const searchInput = document.getElementById('searchInput');
 
-    searchInput.placeholder = searchType === 'pdv' 
-        ? 'Ingresa palabra clave del PDV' 
-        : 'Ingresa palabra clave del producto';
+  searchInput.placeholder = searchType === 'pdv'
+    ? 'Ingresa palabra clave del PDV'
+    : 'Ingresa palabra clave del producto';
 
-    searchInput.value = '';
-    document.getElementById('results').innerHTML = '';
+  searchInput.value = '';
+  document.getElementById('results').innerHTML = '';
 
-    fullData = allData[searchType];
-    initializeFuse(searchType);
+  fullData = allData[searchType];
+  initializeFuse(searchType);
 }
 
 function initializeFuse(type) {
-    const options = {
-        keys: type === 'pdv'    
-            ? ['SAP', 'REGION', 'CUIDAD', 'CADENA', 'PDV']
-            : ['SAP', 'MARCA', 'CATEGORIA', 'SUBCATEGORIA', 'PRODUCTO'],
-        threshold: 0.3,
-    };
-    fuse = new Fuse(fullData, options);
+  const options = {
+    keys: type === 'pdv'
+      ? ['SAP', 'REGION', 'CUIDAD', 'CADENA', 'PDV']
+      : ['SAP', 'MARCA', 'CATEGORIA', 'SUBCATEGORIA', 'PRODUCTO'],
+    threshold: 0.3,
+  };
+  fuse = new Fuse(fullData, options);
 }
 
 function handleInput() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        const searchInput = document.getElementById('searchInput').value.toLowerCase();
-        if (searchInput.trim()) {
-            performSearch(searchInput);
-        } else {
-            document.getElementById('results').innerHTML = ''; 
-        }
-    }, 300);
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    const searchInput = document.getElementById('searchInput').value.toLowerCase();
+    if (searchInput.trim()) {
+      performSearch(searchInput);
+    } else {
+      document.getElementById('results').innerHTML = '';
+    }
+  }, 300);
 }
 
 function performSearch(query) {
-    const results = fuse.search(query).map(result => result.item);
-    renderResults(results);
+  const results = fuse.search(query).map(result => result.item);
+  renderResults(results);
 }
 
 function renderResults(results) {
-    let output = `<h2>Resultados (${results.length} encontrados):</h2>`;
+  let output = `<h2>Resultados (${results.length} encontrados):</h2>`;
 
-    if (results.length > 0) {
-        results.forEach(result => {
-            output += `
-                <div class="result-item">
-                    <h3>${result.PDV || result.PRODUCTO}</h3>
-                    <ul>
-                        <li><strong>SAP:</strong> ${result.SAP} 
-                            <i class="material-icons copy-icon" onclick="copyToClipboard('${result.SAP}')">content_copy</i>
-                        </li>
-                        ${result.REGION ? `<li><strong>Región:</strong> ${result.REGION}</li>` : ''}
-                        ${result.CIUDAD ? `<li><strong>Ciudad:</strong> ${result.CUIDAD}</li>` : ''}
-                        ${result.CANAL ? `<li><strong>Canal:</strong> ${result.CANAL}</li>` : ''}
-                        ${result.CADENA ? `<li><strong>Cadena:</strong> ${result.CADENA}</li>` : ''}
-                        ${result.SUBCATEGORIA ? `<li><strong>Marca:</strong> ${result.MARCA}</li>` : ''}
-                        ${result.SUBCATEGORIA ? `<li><strong>Categoría:</strong> ${result.CATEGORIA}</li>` : ''}
-                        ${result.SUBCATEGORIA ? `<li><strong>Subcategoría:</strong> ${result.SUBCATEGORIA}</li>` : ''}
-                        ${result.REFERENCIA ? `<li><strong>Referencia:</strong> ${result.REFERENCIA}</li>` : ''}
-                    </ul>
-                </div>
-            `;
-        });
-    } else {
-        output += '<p>No se encontraron resultados.</p>';
-    }
+  if (results.length > 0) {
+    results.forEach(result => {
+      output += `
+        <div class="result-item">
+          <h3>${result.PDV || result.PRODUCTO}</h3>
+          <ul>
+            <li><strong>SAP:</strong> ${result.SAP} 
+              <i class="material-icons copy-icon" onclick="copyToClipboard('${result.SAP}')">content_copy</i>
+            </li>
+            ${result.REGION ? `<li><strong>Región:</strong> ${result.REGION}</li>` : ''}
+            ${result.CIUDAD ? `<li><strong>Ciudad:</strong> ${result.CUIDAD}</li>` : ''}
+            ${result.CANAL ? `<li><strong>Canal:</strong> ${result.CANAL}</li>` : ''}
+            ${result.CADENA ? `<li><strong>Cadena:</strong> ${result.CADENA}</li>` : ''}
+            ${result.MARCA ? `<li><strong>Marca:</strong> ${result.MARCA}</li>` : ''}
+            ${result.CATEGORIA ? `<li><strong>Categoría:</strong> ${result.CATEGORIA}</li>` : ''}
+            ${result.SUBCATEGORIA ? `<li><strong>Subcategoría:</strong> ${result.SUBCATEGORIA}</li>` : ''}
+            ${result.REFERENCIA ? `<li><strong>Referencia:</strong> ${result.REFERENCIA}</li>` : ''}
+          </ul>
+        </div>
+      `;
+    });
+  } else {
+    output += '<p>No se encontraron resultados.</p>';
+  }
 
-    document.getElementById('results').innerHTML = output;
+  document.getElementById('results').innerHTML = output;
 }
 
 function copyToClipboard(text) {
-    navigator.clipboard.writeText(text)
-        .then(() => {
-            alert('SAP copiado al portapapeles');
-        })
-        .catch(err => {
-            alert('Error al copiar el SAP');
-            console.error('Error:', err);
-        });
+  navigator.clipboard.writeText(text)
+    .then(() => {
+      alert('SAP copiado al portapapeles');
+    })
+    .catch(err => {
+      alert('Error al copiar el SAP');
+      console.error('Error:', err);
+    });
 }
 
 loadData().then(() => {
-    updatePlaceholder();
+  updatePlaceholder();
 });
