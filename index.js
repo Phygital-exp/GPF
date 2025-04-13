@@ -1,107 +1,46 @@
-let debounceTimer;
-let fuse = null;
-let allData = { pdv: [], producto: [] };
-let fullData = [];
+const express = require("express");
+const cors = require("cors");
+const fetch = require("node-fetch");
+const app = express();
 
-const PDV_URL = 'https://gpf-production.up.railway.app/api/ggpf/pdv';
-const PRODUCTO_URL = 'https://gpf-production.up.railway.app/api/ggpf/producto';
+const PORT = process.env.PORT || 3001;
+const AUTH_HEADERS = {
+    Authorization: "Token 4e15396f99ae10dd5c195d81fb6a3722c0a44a10",
+    "Content-Type": "application/json",
+};
 
-async function loadData() {
-  if (!allData.pdv.length) {
-    const pdvResponse = await fetch(PDV_URL);
-    allData.pdv = (await pdvResponse.json()).result || [];
-  }
+app.use(cors());
 
-  if (!allData.producto.length) {
-    const productoResponse = await fetch(PRODUCTO_URL);
-    allData.producto = (await productoResponse.json()).result || [];
-  }
-}
-
-function updatePlaceholder() {
-  const searchType = document.getElementById('searchType').value;
-  const searchInput = document.getElementById('searchInput');
-
-  searchInput.placeholder = searchType === 'pdv'
-    ? 'Ingresa palabra clave del PDV'
-    : 'Ingresa palabra clave del producto';
-
-  searchInput.value = '';
-  document.getElementById('results').innerHTML = '';
-
-  fullData = allData[searchType];
-  initializeFuse(searchType);
-}
-
-function initializeFuse(type) {
-  const options = {
-    keys: type === 'pdv'
-      ? ['SAP', 'REGION', 'CUIDAD', 'CADENA', 'PDV']
-      : ['SAP', 'MARCA', 'CATEGORIA', 'SUBCATEGORIA', 'PRODUCTO'],
-    threshold: 0.3,
-  };
-  fuse = new Fuse(fullData, options);
-}
-
-function handleInput() {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    const searchInput = document.getElementById('searchInput').value.toLowerCase();
-    if (searchInput.trim()) {
-      performSearch(searchInput);
-    } else {
-      document.getElementById('results').innerHTML = '';
+// Endpoint para PDVs de GGPF
+app.get("/api/ggpf/pdv", async (req, res) => {
+    try {
+        const response = await fetch(
+            "https://botai.smartdataautomation.com/api_backend_ai/dinamic-db/report/119/GGPFPDVs",
+            { headers: AUTH_HEADERS }
+        );
+        const data = await response.json();
+        res.json(data);
+    } catch (err) {
+        console.error("Error en el proxy GGPF PDV:", err);
+        res.status(500).json({ error: "Error al obtener datos de GGPF PDV" });
     }
-  }, 300);
-}
+});
 
-function performSearch(query) {
-  const results = fuse.search(query).map(result => result.item);
-  renderResults(results);
-}
+// Endpoint para Productos de GGPF
+app.get("/api/ggpf/producto", async (req, res) => {
+    try {
+        const response = await fetch(
+            "https://botai.smartdataautomation.com/api_backend_ai/dinamic-db/report/119/GGPFProductos",
+            { headers: AUTH_HEADERS }
+        );
+        const data = await response.json();
+        res.json(data);
+    } catch (err) {
+        console.error("Error en el proxy GGPF Producto:", err);
+        res.status(500).json({ error: "Error al obtener datos de GGPF Productos" });
+    }
+});
 
-function renderResults(results) {
-  let output = `<h2>Resultados (${results.length} encontrados):</h2>`;
-
-  if (results.length > 0) {
-    results.forEach(result => {
-      output += `
-        <div class="result-item">
-          <h3>${result.PDV || result.PRODUCTO}</h3>
-          <ul>
-            <li><strong>SAP:</strong> ${result.SAP} 
-              <i class="material-icons copy-icon" onclick="copyToClipboard('${result.SAP}')">content_copy</i>
-            </li>
-            ${result.REGION ? `<li><strong>Región:</strong> ${result.REGION}</li>` : ''}
-            ${result.CIUDAD ? `<li><strong>Ciudad:</strong> ${result.CUIDAD}</li>` : ''}
-            ${result.CANAL ? `<li><strong>Canal:</strong> ${result.CANAL}</li>` : ''}
-            ${result.CADENA ? `<li><strong>Cadena:</strong> ${result.CADENA}</li>` : ''}
-            ${result.MARCA ? `<li><strong>Marca:</strong> ${result.MARCA}</li>` : ''}
-            ${result.CATEGORIA ? `<li><strong>Categoría:</strong> ${result.CATEGORIA}</li>` : ''}
-            ${result.SUBCATEGORIA ? `<li><strong>Subcategoría:</strong> ${result.SUBCATEGORIA}</li>` : ''}
-            ${result.REFERENCIA ? `<li><strong>Referencia:</strong> ${result.REFERENCIA}</li>` : ''}
-          </ul>
-        </div>
-      `;
-    });
-  } else {
-    output += '<p>No se encontraron resultados.</p>';
-  }
-
-  document.getElementById('results').innerHTML = output;
-}
-
-function copyToClipboard(text) {
-  navigator.clipboard.writeText(text)
-    .then(() => {
-      alert('SAP copiado al portapapeles');
-    })
-    .catch(err => {
-      alert('Error al copiar el SAP');
-      console.error('Error:', err);
-    });
-}
-
-loadData().then(() => {
-  updatePlaceholder();
+app.listen(PORT, () => {
+    console.log(`Proxy GGPF activo en http://localhost:${PORT}`);
 });
